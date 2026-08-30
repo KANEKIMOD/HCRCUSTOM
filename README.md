@@ -7,7 +7,9 @@ Instalador automático para HCR Server.
 Como `root`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh -o setup.sh
+chmod +x setup.sh
+bash -x setup.sh
 ```
 
 El instalador muestra el banner y solo pregunta el puerto:

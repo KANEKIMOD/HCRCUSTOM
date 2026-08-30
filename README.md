@@ -91,10 +91,3 @@ systemctl restart hcr-server
 El binario `hcr-server` incluido es el archivo proporcionado para este paquete. Antes de usarlo en otra arquitectura, utiliza un binario HCR compilado para la arquitectura de ese VPS.
 
 El bootstrap detecta la arquitectura y advierte si no es `x86_64`.
-
-## Seguridad
-
-- Ejecuta el instalador únicamente desde un repositorio que controles.
-- Revisa los scripts antes de ejecutarlos en un VPS.
-- No publiques claves privadas TLS.
-- El instalador original crea un servicio systemd como `root`, escucha en el puerto seleccionado y usa `127.0.0.1:22` como destino, según su propia configuración.

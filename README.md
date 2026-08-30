@@ -42,19 +42,19 @@ El script mostrará un menú y permitirá seleccionar:
 Plain:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport plain --port 8080 --no-menu
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport plain --port 8880 --no-menu
 ```
 
 TLS:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport tls --port 8080 --no-menu
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport tls --port 8880 --no-menu
 ```
 
 Auto:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport auto --port 8080 --no-menu
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport auto --port 8880 --no-menu
 ```
 
 ## TLS
@@ -114,4 +114,29 @@ Después de una instalación correcta:
 
 ```bash
 knmods-hcr
+```
+
+
+## Selección del puerto
+
+Al ejecutar el instalador con menú, el puerto NO está fijado. El instalador pregunta:
+
+```text
+Puerto para HCR [ejemplo 8880]:
+```
+
+Acepta cualquier puerto TCP válido entre `1` y `65535`, comprueba que el formato sea correcto y pide confirmación antes de instalar.
+
+Ejemplo:
+
+```text
+Puerto para HCR [ejemplo 8880]: 8880
+Puerto seleccionado: 8880
+¿Confirmar instalación en el puerto 8880? [S/n]:
+```
+
+En modo no interactivo (`--no-menu`) puedes especificar el puerto explícitamente:
+
+```bash
+... setup.sh --repo OWNER/REPO --transport plain --port 8880 --no-menu
 ```

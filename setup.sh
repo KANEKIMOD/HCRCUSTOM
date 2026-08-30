@@ -20,7 +20,7 @@ set -Eeuo pipefail
 REPO=""
 BRANCH="main"
 TRANSPORT="plain"
-PORT="8080"
+PORT=""
 NO_MENU="false"
 INSTALL_DIR="/opt/hcr"
 SERVICE="hcr-server"
@@ -69,7 +69,7 @@ Options:
   --repo OWNER/REPO       GitHub repository containing this installer
   --branch NAME           Git branch (default: main)
   --transport MODE        plain, tls or auto (default: plain)
-  --port PORT             Listening port (default: 8080)
+  --port PORT             Listening port (interactive if omitted)
   --no-menu               Install directly without interactive menu
   -h, --help              Show help
 EOF
@@ -286,7 +286,7 @@ install_menu() {
 
     case "$menu_choice" in
       1)
-        read -r -p "Puerto [8080]: " p; [[ -n "$p" ]] && PORT="$p"
+        read -r -p "Puerto [$([ -n "$PORT" ] && echo "$PORT" || echo "8080")]: " p; [[ -n "$p" ]] && PORT="$p"
         read -r -p "Transporte [plain/tls/auto] (plain): " t; [[ -n "$t" ]] && TRANSPORT="$t"
         validate
         check_arch
@@ -300,7 +300,7 @@ install_menu() {
       5)
         banner
         systemctl show "$SERVICE" --property=ActiveState,SubState,MainPID,WorkingDirectory,ExecStart 2>/dev/null || true
-        ss -ltnp 2>/dev/null | grep -E ":(${PORT}|8080)\b" || true
+        ss -ltnp 2>/dev/null | grep -E ":(${PORT}|8880)\b" || true
         read -r -p "ENTER..." _
         ;;
       6)
@@ -325,6 +325,21 @@ install_menu() {
 
 main() {
   parse "$@"
+  if [[ -z "$PORT" && "$NO_MENU" != "true" && -t 0 ]]; then
+    echo
+    info "Configuración del puerto HCR"
+    while true; do
+      read -r -p "Puerto para HCR [ejemplo 8880]: " p
+      [[ "$p" =~ ^[0-9]+$ ]] && (( 10#$p >= 1 && 10#$p <= 65535 )) && { PORT=$((10#$p)); break; }
+      warn "Puerto inválido. Usa un número entre 1 y 65535."
+    done
+    echo
+    info "Puerto seleccionado: $PORT"
+    read -r -p "¿Confirmar instalación en el puerto $PORT? [S/n]: " confirm
+    [[ -z "$confirm" || "$confirm" =~ ^[sSyY]$ ]] || exit 0
+  elif [[ -z "$PORT" ]]; then
+    PORT="8080"
+  fi
   validate
   banner
 

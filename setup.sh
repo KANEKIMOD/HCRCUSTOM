@@ -20,7 +20,7 @@ set -Eeuo pipefail
 REPO=""
 BRANCH="main"
 TRANSPORT="plain"
-PORT="8880"
+PORT="8080"
 NO_MENU="false"
 INSTALL_DIR="/opt/hcr"
 SERVICE="hcr-server"
@@ -194,9 +194,81 @@ install_hcr() {
     setup_tls
   fi
 
+  if command -v systemctl >/dev/null 2>&1; then
+    if ! systemctl is-active --quiet ssh.service 2>/dev/null &&
+       ! systemctl is-active --quiet sshd.service 2>/dev/null; then
+      if command -v apt-get >/dev/null 2>&1; then
+        info "SSH no está activo; comprobando openssh-server..."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get install -y openssh-server >/dev/null 2>&1 || true
+        systemctl enable --now ssh.service >/dev/null 2>&1 ||
+          systemctl enable --now sshd.service >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+
+  if command -v ss >/dev/null 2>&1 && ss -ltn "( sport = :$PORT )" 2>/dev/null | tail -n +2 | grep -q .; then
+    warn "El puerto $PORT ya está ocupado."
+    read -r -p "¿Continuar de todos modos? [s/N] " ans
+    [[ "$ans" =~ ^[sS]$ ]] || exit 0
+  fi
+
   info "Ejecutando instalador HCR..."
+  set +e
   "$INSTALL_DIR/install.sh" --transport "$TRANSPORT" --port "$PORT"
-  ok "HCR Server instalado."
+  rc=$?
+  set -e
+
+  if systemctl is-active --quiet "$SERVICE" 2>/dev/null; then
+    ok "HCR Server está ONLINE en el puerto $PORT."
+    return 0
+  fi
+
+  warn "El servicio no permaneció activo. Iniciando diagnóstico automático..."
+  echo
+  systemctl status "$SERVICE" --no-pager --full 2>/dev/null || true
+  echo
+  journalctl -u "$SERVICE" -n 80 --no-pager 2>/dev/null || true
+  echo
+  info "Binario:"
+  "$INSTALL_DIR/hcr-server" -version 2>&1 || true
+  info "Arquitectura: $(uname -m)"
+  command -v file >/dev/null 2>&1 && file "$INSTALL_DIR/hcr-server" || true
+  echo
+  info "SSH en TCP/22:"
+  command -v ss >/dev/null 2>&1 && (ss -ltn 2>/dev/null | grep -E '(:22)\\b' || warn "No se detectó listener en TCP/22.")
+
+  local compat="/etc/systemd/system/hcr-server-compat.conf"
+  if [[ -f /opt/hcr/hcr-server.service ]]; then
+    cp -f /opt/hcr/hcr-server.service /opt/hcr/hcr-server.service.knmods-backup 2>/dev/null || true
+    cat > "$compat" <<'EOF'
+# KN MODS compatibility fallback generated automatically.
+[Service]
+PrivateDevices=false
+ProtectSystem=full
+ProtectControlGroups=false
+ProtectHome=false
+RestrictNamespaces=false
+NoNewPrivileges=false
+EOF
+    systemctl daemon-reload
+    systemctl reset-failed "$SERVICE" >/dev/null 2>&1 || true
+    info "Aplicando compatibilidad de systemd y reiniciando..."
+    systemctl restart "$SERVICE" 2>/dev/null || true
+    sleep 3
+  fi
+
+  if systemctl is-active --quiet "$SERVICE" 2>/dev/null; then
+    ok "HCR Server está ONLINE después del modo de compatibilidad."
+    return 0
+  fi
+
+  echo
+  warn "El servidor todavía no consigue mantenerse activo."
+  warn "Código del instalador original: $rc"
+  echo
+  journalctl -u "$SERVICE" -n 120 --no-pager 2>/dev/null || true
+  die "No fue posible iniciar HCR. El diagnóstico anterior muestra la causa."
 }
 
 install_menu() {
@@ -214,7 +286,7 @@ install_menu() {
 
     case "$menu_choice" in
       1)
-        read -r -p "Puerto [8880]: " p; [[ -n "$p" ]] && PORT="$p"
+        read -r -p "Puerto [8080]: " p; [[ -n "$p" ]] && PORT="$p"
         read -r -p "Transporte [plain/tls/auto] (plain): " t; [[ -n "$t" ]] && TRANSPORT="$t"
         validate
         check_arch

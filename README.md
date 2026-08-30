@@ -1,102 +1,117 @@
-🚀 KN MODS - HCR CUSTOM INSTALLER
+# KN MODS • HCR Auto Installer
 
-Instalador automático para HCR Server en Ubuntu, Debian y derivados.
+Instalador automatizado para el **HCR Server** incluido en este repositorio.
 
-✨ Características
+## Estructura
 
-- Instalación automática en VPS.
-- Compatible con Ubuntu 20.04, 22.04 y 24.04.
-- Soporte para:
-  - Plain
-  - TLS
-  - Auto
-- Configuración mediante menú interactivo.
-- Servicio systemd automático.
-- Gestión de logs.
-- Reinicio rápido del servicio.
-- Detección automática de certificados Let's Encrypt.
+```text
+.
+├── setup.sh       # Bootstrap para instalar desde GitHub
+├── install.sh     # Instalador original HCR
+└── hcr-server     # Binario HCR
+```
 
----
+### Instalación con un solo comando
 
-📦 Instalación rápida
+Después de subir los archivos a GitHub:
 
-Ejecuta:
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO
+```
 
-curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh | bash -s -- --repo KANEKIMOD/HCRCUSTOM
+Ejemplo:
 
----
+```bash
+curl -fsSL https://raw.githubusercontent.com/knmods/hcr-installer/main/setup.sh | bash -s -- --repo knmods/hcr-installer
+```
 
-⚙️ Instalación manual
+El script mostrará un menú y permitirá seleccionar:
 
-git clone https://github.com/KANEKIMOD/HCRCUSTOM.git
-cd HCRCUSTOM
+```text
+[1] Instalar / actualizar HCR
+[2] Estado del servicio
+[3] Reiniciar HCR
+[4] Ver logs
+[5] Mostrar configuración
+[6] Desinstalar HCR
+[0] Salir
+```
 
-chmod +x setup.sh
-chmod +x install.sh
-chmod +x hcr-server
+## Instalación directa
 
-sudo ./setup.sh
+Plain:
 
----
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport plain --port 8080 --no-menu
+```
 
-🔐 Modos disponibles
+TLS:
 
-Plain
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport tls --port 8080 --no-menu
+```
 
-Instala HCR sin certificados TLS.
+Auto:
 
-TLS
+```bash
+curl -fsSL https://raw.githubusercontent.com/OWNER/REPO/main/setup.sh | bash -s -- --repo OWNER/REPO --transport auto --port 8080 --no-menu
+```
 
-Instala HCR utilizando:
+## TLS
 
+`tls` y `auto` necesitan:
+
+```text
 fullchain.pem
 privkey.pem
+```
 
-Auto
+El `setup.sh` busca primero certificados Let's Encrypt en:
 
-Acepta conexiones TLS y no TLS automáticamente.
+```text
+/etc/letsencrypt/live/*/
+```
 
----
+Si no los encuentra, los solicita mediante rutas locales.
 
-📊 Administración
+**Nunca subas `privkey.pem` a un repositorio público.**
 
-Ver estado:
+## Administración
 
+Tras instalar puedes consultar:
+
+```bash
 systemctl status hcr-server
-
-Reiniciar:
-
-systemctl restart hcr-server
-
-Ver logs:
-
 journalctl -u hcr-server -f
+systemctl restart hcr-server
+```
 
-Detener:
+## Arquitectura
 
-systemctl stop hcr-server
+El binario `hcr-server` incluido es el archivo proporcionado para este paquete. Antes de usarlo en otra arquitectura, utiliza un binario HCR compilado para la arquitectura de ese VPS.
 
----
+El bootstrap detecta la arquitectura y advierte si no es `x86_64`.
 
-🗑 Desinstalación
+## Seguridad
 
-cd /opt/hcr
+- Ejecuta el instalador únicamente desde un repositorio que controles.
+- Revisa los scripts antes de ejecutarlos en un VPS.
+- No publiques claves privadas TLS.
+- El instalador original crea un servicio systemd como `root`, escucha en el puerto seleccionado y usa `127.0.0.1:22` como destino, según su propia configuración.
 
-./install.sh --uninstall
 
----
+## 🔧 Recuperación automática
 
-📁 Estructura
+Si `hcr-server` no permanece activo, `setup.sh` muestra el estado y los logs, verifica el binario, arquitectura y SSH en `127.0.0.1:22` y aplica un perfil de compatibilidad de systemd antes de volver a intentarlo.
 
-HCRCUSTOM/
-├── hcr-server
-├── install.sh
-├── setup.sh
-├── README.md
-└── assets/
+La unidad original se conserva como:
 
----
+```text
+/opt/hcr/hcr-server.service.knmods-backup
+```
 
-👑 KN MODS
+Después de una instalación correcta:
 
-Desarrollado para simplificar la instalación y administración de HCR Server en VPS Linux.
+```bash
+knmods-hcr
+```

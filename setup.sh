@@ -20,7 +20,7 @@ set -Eeuo pipefail
 REPO=""
 BRANCH="main"
 TRANSPORT="plain"
-PORT="8080"
+PORT="8880"
 NO_MENU="false"
 INSTALL_DIR="/opt/hcr"
 SERVICE="hcr-server"
@@ -214,7 +214,7 @@ install_menu() {
 
     case "$menu_choice" in
       1)
-        read -r -p "Puerto [8080]: " p; [[ -n "$p" ]] && PORT="$p"
+        read -r -p "Puerto [8880]: " p; [[ -n "$p" ]] && PORT="$p"
         read -r -p "Transporte [plain/tls/auto] (plain): " t; [[ -n "$t" ]] && TRANSPORT="$t"
         validate
         check_arch

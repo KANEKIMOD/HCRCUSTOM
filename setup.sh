@@ -17,7 +17,7 @@ set -Eeuo pipefail
 #
 # IMPORTANT: never commit private TLS keys to a public GitHub repository.
 
-REPO=""
+REPO="KANEKIMOD/HCRCUSTOM"
 BRANCH="main"
 TRANSPORT="plain"
 PORT=""
@@ -63,7 +63,7 @@ usage() {
 KN MODS HCR Installer
 
 Usage:
-  bash setup.sh --repo OWNER/REPO [options]
+  bash setup.sh [--repo OWNER/REPO] [options]
 
 Options:
   --repo OWNER/REPO       GitHub repository containing this installer
@@ -139,6 +139,16 @@ check_arch() {
 
 download_bundle() {
   install -d -m 0700 "$INSTALL_DIR"
+
+  # Critical update fix: stop HCR before replacing its executable.
+  if systemctl cat "$SERVICE" >/dev/null 2>&1; then
+    info "Deteniendo HCR antes de actualizar el binario..."
+    systemctl stop "$SERVICE" 2>/dev/null || true
+    sleep 1
+    pkill -TERM -x hcr-server 2>/dev/null || true
+    sleep 1
+  fi
+
   download_file "install.sh"
   download_file "hcr-server"
   chown root:root "$INSTALL_DIR/install.sh" "$INSTALL_DIR/hcr-server"
@@ -238,9 +248,11 @@ install_hcr() {
   info "SSH en TCP/22:"
   command -v ss >/dev/null 2>&1 && (ss -ltn 2>/dev/null | grep -E '(:22)\\b' || warn "No se detectó listener en TCP/22.")
 
-  local compat="/etc/systemd/system/hcr-server-compat.conf"
+  local compat_dir="/etc/systemd/system/hcr-server.service.d"
+  local compat="$compat_dir/override.conf"
   if [[ -f /opt/hcr/hcr-server.service ]]; then
     cp -f /opt/hcr/hcr-server.service /opt/hcr/hcr-server.service.knmods-backup 2>/dev/null || true
+    install -d -m 0755 "$compat_dir"
     cat > "$compat" <<'EOF'
 # KN MODS compatibility fallback generated automatically.
 [Service]
@@ -340,6 +352,7 @@ main() {
   elif [[ -z "$PORT" ]]; then
     PORT="8080"
   fi
+  install_deps
   validate
   banner
 

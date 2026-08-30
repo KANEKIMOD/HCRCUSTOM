@@ -1,70 +1,59 @@
 # KN MODS • HCR CUSTOM
 
-Instalador automático para HCR Server en Ubuntu/Debian.
+Instalador de un solo comando para el HCR Server incluido en este repositorio.
 
-## Instalación rápida
-
-Como `root`:
+## Instalación
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh | bash
 ```
 
-El instalador **no necesita `--repo`**. El repositorio está incorporado en `setup.sh`.
+El instalador muestra el banner KN MODS y te deja elegir:
 
-Durante la instalación pregunta el puerto que quieres usar. Ejemplo:
+- Puerto HCR (1–65535). Si está ocupado, pide otro.
+- Transporte: `plain`, `tls` o `auto`.
+- Máximo de conexiones globales.
+- Máximo de sesiones globales.
+- Máximo de sesiones por IP.
+- Máximo de bytes por frame de descarga.
+- Tiempo de espera de una conexión de descarga.
+- Intervalo opcional de estadísticas por sesión.
 
-```text
-Puerto para HCR (ejemplo 8880): 8880
-```
+## Parámetros reales del binario
 
-También puedes elegir `80`, `443`, `8080`, `8880` u otro puerto libre entre `1` y `65535`.
-
-## Instalación no interactiva
-
-Para pasar argumentos, primero descarga el script y después ejecútalo; no uses `bash --transport ...` directamente sobre un pipe:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh -o /tmp/knmods-hcr.sh
-bash /tmp/knmods-hcr.sh --transport plain --port 8880 --no-menu
-```
-
-## TLS / Auto
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/KANEKIMOD/HCRCUSTOM/main/setup.sh -o /tmp/knmods-hcr.sh
-bash /tmp/knmods-hcr.sh --transport auto --port 443 --no-menu
-```
-
-`tls` y `auto` necesitan `fullchain.pem` y `privkey.pem`. El script busca primero Let's Encrypt en `/etc/letsencrypt/live/`.
-
-## Actualización
-
-El instalador detiene HCR antes de actualizar el binario y descarga primero a archivos temporales. Luego hace un `mv` atómico para evitar el error:
+El `hcr-server` entregado soporta estos flags:
 
 ```text
-Text file busy
+-listen
+-target
+-transport
+-tls-cert
+-tls-key
+-max-connections
+-max-sessions
+-max-sessions-per-ip
+-max-download-frame
+-download-poll-timeout
+-session-stats-interval
+-version
 ```
+
+No se inventan parámetros `upload.chunk_size`, `upload.connections` ni `download.chunk_size`: esos campos no están expuestos por este binario.
 
 ## Administración
 
+Después de instalar:
+
 ```bash
-systemctl status hcr-server
-systemctl restart hcr-server
-journalctl -u hcr-server -f
+knmods
 ```
 
-## Requisitos
+El panel permite crear/renovar/eliminar usuarios SSH, ver sesiones, desconectar usuarios, cambiar el puerto, editar el banner SSH, cambiar los límites HCR soportados y consultar estado/logs.
 
-- Ubuntu/Debian con systemd.
-- Acceso root.
-- Internet.
-- El `hcr-server` incluido en este repositorio es el binario proporcionado para `x86_64`.
+## Actualización
+
+El instalador detiene el servicio y descarga el binario a un archivo temporal antes de reemplazar `/opt/hcr/hcr-server`. Esto evita el error `Text file busy`.
 
 ## Seguridad
 
-No subas `privkey.pem` ni otros secretos a un repositorio público.
-
-## Repositorio
-
-https://github.com/KANEKIMOD/HCRCUSTOM
+No publiques `privkey.pem` ni credenciales en un repositorio público.
